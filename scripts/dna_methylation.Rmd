@@ -36,6 +36,7 @@ In this project I will be performing exploratory data analysis on public DNA met
 
 ## Load libraries
 
-```
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg19) # human genome package
 ```
 
