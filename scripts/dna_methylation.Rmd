@@ -65,10 +65,31 @@ The string above is the DNA sequence 1000 basepairs centered around the point 23
 
 ```{r}
 
-gc <- letterFrequency(s, 
+cg_prop <- letterFrequency(s, 
                 letters = "CG", # specify string of interest
                 as.prob = TRUE) # specify results output
-gc
+cg_prop
 ```
 
 The results show that GC content of the slected resion of chr22 is **58.3%**.
+
+### Calculate the number of CpGs
+
+```{r}
+n_cg <- countPattern(s, 
+                     pattern = "CG")
+n_cg
+```
+
+There are 10 CpGs in the DNA string of interest on chr22.
+
+### Calculate the number of GpCs
+
+```{r}
+n_gc <- countPattern(s, 
+                     pattern = "GC")
+n_gc
+```
+
+There are 65 GpCs in the DNA string of interest on chr22.
+
