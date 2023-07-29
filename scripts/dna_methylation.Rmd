@@ -1,0 +1,41 @@
+---
+title: "dna_methylation"
+author: "Charles"
+date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  html_document:
+    theme: cosmo
+    highlight: monochrome
+    toc: yes
+    toc_float: no
+    toc_depth: 6
+    code_folding: hide
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+Epigenetic mechanisms regulate gene expression. Certain technologies enable us measure some epigentic endpoints. One example is DNA methylation. DNA methylation is a chemical process that occurs around genes and which is capable of silencing gene expression. In this project, I will analyse DNA methylation data for the whole genome and relate it to phenotypic variation.
+
+It has been studies that when part of a genome is methylated, the gene close to it is not expressed. It is inherited at mitosis.
+
+Methylation often occurs at CpG islands. A **CpG** is a C, followed by a G but from the $5^1$ end to the $3^1$ end. When one DNA strand is methylated, so is the other. if we also have a CpG on one strand, we have it as well on the other strand.When DNA replicates, its methylation characteristics are preserved.
+
+In this project I will be performing exploratory data analysis on public DNA methylation data.
+
+## Load libraries
+
+```
+```
+
