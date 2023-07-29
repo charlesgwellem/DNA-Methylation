@@ -40,3 +40,35 @@ In this project I will be performing exploratory data analysis on public DNA met
 library(BSgenome.Hsapiens.UCSC.hg19) # human genome package
 ```
 
+## Exploratory data analysis 
+
+### Calculate GC content on chromosome 22.
+
+The GC-content are the proportion of bases that are either "G" or "C".
+
+#### Subset gene sequence of chr22
+
+```{r}
+# subset chr22
+chr22 <- Hsapiens[["chr22"]]
+
+# select start region
+s <- subseq(chr22, 
+            start = 23456789, 
+            width = 1000)
+print(as.character(s))
+```
+
+The string above is the DNA sequence 1000 basepairs centered around the point 23456789.
+
+#### Calculate the GC content
+
+```{r}
+
+gc <- letterFrequency(s, 
+                letters = "CG", # specify string of interest
+                as.prob = TRUE) # specify results output
+gc
+```
+
+The results show that GC content of the slected resion of chr22 is **58.3%**.
