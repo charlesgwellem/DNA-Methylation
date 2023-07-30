@@ -281,5 +281,6 @@ The results show that the median of the ratio of the number of observed CpGs to 
 ## Session info
 
 ```{r}
+# obtain the session info
 sessionInfo()
 ```
