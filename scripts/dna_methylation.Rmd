@@ -220,7 +220,7 @@ The results show that the ratio of observed to expected cpgs is `r median(cpgoe)
 
 ### Calculate the median of observed number of GpCs by the expected number of CpGs.
 
-```{r}
+```{r, fig.align='center'}
 obs_gc <- vcountPattern(pattern = "GC",
                    subject = cgiseq)
 gpcoe <- obs_gc / exp_cg
