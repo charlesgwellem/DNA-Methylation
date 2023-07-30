@@ -3,9 +3,6 @@ title: "dna_methylation"
 author: "Charles"
 date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
 output:
-  word_document:
-    toc: yes
-    toc_depth: '6'
   html_document:
     theme: cosmo
     highlight: monochrome
@@ -13,12 +10,33 @@ output:
     toc_float: no
     toc_depth: 6
     code_folding: hide
+  word_document:
+    toc: yes
+    toc_depth: '6'
   pdf_document:
     toc: yes
     toc_depth: '6'
 editor_options:
   chunk_output_type: console
 ---
+
+```{css, echo=FALSE}
+<style>
+body, h1, h2, h3, h4 {
+    font-family: "Bookman", serif;
+}
+
+body {
+    color: #333333;
+}
+a, a:hover {
+    color: red;
+}
+pre {
+    font-size: 10px;
+}
+</style>
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
@@ -93,3 +111,175 @@ n_gc
 
 There are 65 GpCs in the DNA string of interest on chr22.
 
+## CpG islands Assessment
+
+CpG islands are regions of the DNA with higher concentrations of CpGs compared to other areas of the genome.
+
+### Bioconductor AnnotationHub package
+
+This package permits us to explore available annotations.
+
+```{r}
+library(AnnotationHub)
+ah <- AnnotationHub()
+head(ah)
+```
+
+### Subset these to just the databases related to the hg19 genome.
+
+```{r}
+ah <- subset(ah,ah$genome=="hg19")
+head(ah)
+```
+
+The table above shows the databses with annotations related to the hg19 genome. 
+
+### Query gene annotations
+
+```{r}
+query(ah, "genes")
+```
+
+### Identifing the record ID used by AnnotationHub for hg19 CpG Islands
+
+```{r}
+cgi_id <- query(ah,"cpg")
+head(cgi_id)
+```
+
+The results show that the record ID used by AnnotationHub for hg19 CpG Islands is **AH5086**.
+
+### Retrive annotations related to record ID AH5086
+
+```{r}
+cgi <- ah[["AH5086"]]
+```
+
+### Calculate the number of CpGs in cgi
+
+```{r}
+length(cgi)
+```
+
+There are `r length(cgi)` CpGs in the cgi object above.
+
+### Extract sequences of each CpG islands
+
+```{r}
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+cgiseq <- getSeq(Hsapiens, cgi)
+head(cgiseq)
+```
+
+The result above shows each of the `r length(cgi)` CpGs,  the width (number of nucleotides in each CpG island) and the actual sequences of each CpG.
+
+### Computing the proportion of Cs for each island and the median.
+
+```{r}
+prop_c <- letterFrequency(cgiseq, # sequences of cpgs
+                            letters = "C", # letter of interest
+                            as.prob = TRUE) # return proportions
+median(prop_c)
+```
+
+The results show that the median proportion of Cs in the CpG sequences is `r median(prop_c)`.
+
+### Computing the proportion of Gs for each island and the median.
+
+```{r}
+prop_g <- letterFrequency(cgiseq, # sequences of cpgs
+                            letters = "G", # letter of interest
+                            as.prob = TRUE) # return proportions
+median(prop_g)
+```
+
+The results show that the median proportion of Cs in the CpG sequences is `r median(prop_g)`.
+
+### Calculate the median of observed number of CpGs by the expected number of CpGs.
+
+```{r, fig.align='center'}
+res <- alphabetFrequency(cgiseq)
+L <- rowSums(res)
+exp_cg <- L * prop_c * prop_g
+obs_cg <- vcountPattern(pattern = "CG",
+                   subject = cgiseq)
+cpgoe <- obs_cg / exp_cg
+median(cpgoe)
+
+# we can look at a histogram
+hist(cpgoe)
+abline(v=1, col=2)
+
+# because these are ratios, looking at the log is better
+hist(log2(cpgoe))
+abline(v=0, col=2)
+```
+
+The results show that the ratio of observed to expected cpgs is `r median(cpgoe)`. This shows that the expected number of CpGs is higher than the actually observed number of cpgs.
+
+### Calculate the median of observed number of GpCs by the expected number of CpGs.
+
+```{r}
+obs_gc <- vcountPattern(pattern = "GC",
+                   subject = cgiseq)
+gpcoe <- obs_gc / exp_cg
+median(gpcoe)
+
+# we can look at a histogram
+hist(gpcoe)
+abline(v=1, col=2)
+
+# because these are ratios, looking at the log is better
+hist(log2(gpcoe))
+abline(v=0, col=2)
+
+### We can look at a histogram
+boxplot(list(cpgoe,gpcoe))
+```
+
+The results show that the ratio of observed to expected cpgs is `r median(gpcoe)`. This shows that the expected number of GpCs is less than the actually observed number of gpcs.
+
+### Analyse CpGs in regions that are not islands
+
+To achieve this, we will shift the islands by 20000 nucleotides and restrict analysis to mapped chromosomes.
+
+```{r}
+chr2use <- seqlevels(cgi)[1:24]
+index <- which(seqnames(cgi) %in% chr2use)
+
+# define the non-cpg islands by shifting known ones by 20K nucleotides
+noncgi <- shift(cgi[index], 20000)
+
+# some of these regions contain repeats or are unmapped, so we remove regions that have 0 Cs or 0 Gs.
+
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+noncgiseq <- getSeq(Hsapiens, noncgi)
+nullres <- alphabetFrequency(noncgiseq)
+keepIndex <- nullres[,"G"]>0 &  nullres[,"C"]>0 & nullres[,"N"]==0
+nullres <- nullres[keepIndex, ]
+noncgiseq <- noncgiseq[keepIndex]
+```
+
+### Analyse median of CpGs in regions that are not islands
+
+```{r}
+res <- alphabetFrequency(noncgiseq)
+L <- rowSums(res)
+prop_c <- res[, "C"] / L
+prop_g <- res[, "G"] / L
+expected_cg <- L * prop_c * prop_g
+obs_cg <- vcountPattern(noncgiseq,
+                        pattern = "CG")
+cpgoe <- obs_cg / expected_cg
+median(cpgoe)
+```
+
+The results show that the median of the ratio of the number of observed CpGs to the number of expected CpGs is `r median(cpgoe)`. This shows that in these regions the CpG-poor areas also have a small ratio of number of observed CpGs to number of expected CpGs.
+
+## Session info
+
+```{r}
+sessionInfo()
+```
