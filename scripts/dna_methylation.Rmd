@@ -278,6 +278,29 @@ median(cpgoe)
 
 The results show that the median of the ratio of the number of observed CpGs to the number of expected CpGs is `r median(cpgoe)`. This shows that in these regions the CpG-poor areas also have a small ratio of number of observed CpGs to number of expected CpGs.
 
+## Statistical considerations
+
+### Single CpG model
+
+$Y_{ij} = \beta_{0,j} + X_i\beta_{1,j} + \epsilon_{ij}$
+
+$Y_{ij}$ = Observed data
+$\beta_{0,j}$ = baseline methylation level
+$X_i$ = outcome of interest e.g. tumour and normal
+$\beta_{1,j}$ = effect at j-th position
+$\epsilon_{i,j}$ = measurement error
+
+### Functional model
+
+$Y_{ij} = \beta_0(l_j) + X_i\beta_1(l_j) + \epsilon_{ij}$
+
+Where we now have parameters as a function of location.
+
+
+
+
+
+
 ## Session info
 
 ```{r}
