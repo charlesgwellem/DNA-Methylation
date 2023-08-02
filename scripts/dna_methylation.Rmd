@@ -58,7 +58,7 @@ In this project I will be performing exploratory data analysis on public DNA met
 library(BSgenome.Hsapiens.UCSC.hg19) # human genome package
 ```
 
-## Exploratory data analysis 
+## Exploratory data analysis of CpGs on human chromosome 22
 
 ### Calculate GC content on chromosome 22.
 
@@ -297,9 +297,56 @@ $Y_{ij} = \beta_0(l_j) + X_i\beta_1(l_j) + \epsilon_{ij}$
 Where we now have parameters as a function of location.
 
 
-## Analysis of DNA methylation data
+## Exploratory data analysis of colon cancer methylation data
 
-The data set comes from the illumina 450K array and it is from the TGCA, colon cancer data.
+The data set comes from the illumina 450K array and it is from the TGCA, colon cancer data. The data are already cleaned.
+
+### Installing necessary tools
+
+```{r results='hide'}
+devtools::install_github("genomicsclass/coloncancermeth")
+library(coloncancermeth)
+data(coloncancermeth)
+```
+
+The dataset consists of three tables, one holds the data methylation data, another the metadata about the columns and the third contains the a granges object with the genomic location of the CpGs represented in the rows of the data matrix.
+
+```{r}
+dim(meth) ## this is the methyltion data
+dim(pd) ## is the metadata
+length(gr) ## contains the genomic locations of the CpGs
+```
+
+The pd object above includes clinical data, one column provides information if a sample if from healthy tissue of from colon cancer tissue.
+
+```{r}
+colnames(pd)
+table(pd$Status)
+normalIndex <- which(pd$Status == "normal")
+cancerIndex <- which(pd$Status == "cancer")
+```
+
+### Inspecting the distribution of methylation measurements for each of the normal samples.
+
+Use a histogram to assess the distribution of methylation measurements in each of the samples.
+
+```{r fig.align='center'}
+i <- normalIndex[1]
+plot(density(meth[, i], from = 0, to = 1),
+     main = "", ylim = c(0, 3), type = "n")
+for (i in normalIndex) {
+  lines(density(meth[, i], from = 0, 
+                to = 1), col = 1)
+}
+
+### add the cancer samples
+for (i in cancerIndex) {
+  lines(density(meth[, i], from = 0, 
+                to = 1), col = 2)
+}
+```
+
+
 
 
 
