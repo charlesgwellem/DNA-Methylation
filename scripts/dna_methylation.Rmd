@@ -297,7 +297,9 @@ $Y_{ij} = \beta_0(l_j) + X_i\beta_1(l_j) + \epsilon_{ij}$
 Where we now have parameters as a function of location.
 
 
+## Analysis of DNA methylation data
 
+The data set comes from the illumina 450K array and it is from the TGCA, colon cancer data.
 
 
 
