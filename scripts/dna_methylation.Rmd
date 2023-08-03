@@ -346,13 +346,62 @@ for (i in cancerIndex) {
 }
 ```
 
+The graph shows a bimodal distribution reflecting unmethylated and methylated CpGs to the left and right of the graph respectively. Unmethylated CpGs have value around 0 and the methylyted ones around 0.8. It is noticeable that on both peaks of the graph, the methalytion measurements of the cancer samples tend to have a lower peak compared to those from the normal samples. It is also noticeable that for the cancer samples, the data moves more to the middle of the two peaks compared to the normal samples. This is because the middle region between the two peaks of the graph tend to have higher values for the cancer samples, depicted with red lines. This phenomenone is apparently common with cancer samples.
 
+### Identify the differentially methylated regions of the genome
 
+#### Approach1: Perform statistical test on each CpG.
+
+In this case I use the lmFit and use eBayes to shrink standard deviation estimates and to obtain effect size and a p value.
+
+```{r}
+library(limma)
+X <- model.matrix(~pd$Status)
+fit <- lmFit(meth, X) 
+eb <- eBayes(fit)
+```
+
+A volcano plot may be used to reveal differences
+
+```{r}
+library(rafalib)
+splot(fit$coefficients[, 2],
+      -log10(eb$p.value[, 2]), xlab = "Effect size",
+      ylab = "-log10 p-value", check.height = FALSE)
+```
+
+Alot of points appear to be significant. 0.2 is pretty different while 0.4 is quite different. Also we use a T test here despite the fact that the values are all between 0 and 1. Normally this will violate the assumptions we need for the T to be t-distributed. We however use this approach hoping that the sample size will be large enough for the central limit theorem to work out. Implementing approach which will take that in to consideration will be fine as well. But with enough samples, say 10, applying the T test even with a methylation scale of 0 and 1 is still very much okay.
+
+Despite the fact that there are interesting results, we must note that in methylation data, were are interested in regions, unlike gene expression data. To apply this, I will get the CpG that has the lowest p value and make at a middle point, and cosider a region around it with a size of 10000.
+
+```{r fig.align='center'}
+i <- which.min(eb$p.value[, 2])
+middle <- gr[i, ]
+Index <- gr %over% (middle +  10000)
+length(Index)
+cols <- ifelse(pd$Status=="normal", 1, 2)
+chr <- as.factor(seqnames(gr)) # define the chromosomes
+position <- start(gr) # get position of each probe
+
+plot(position[Index], fit$coefficients[Index, 2],
+     type = "b", xlab = "genomic location",
+     ylab = "difference")
+matplot(position[Index],
+        meth[Index, ],
+        col = cols,
+        xlab = "genomic location",
+        ylab = "difference")
+```
+
+The matplot function will enable the visualisation of all the points in the original table. The graph shows that in the region where there are the most abundanty methylated CpGs, the nornam samples (in black) have lower methylation values compared to the those in red.
 
 
 ## Session info
 
 ```{r}
+# code for pushing 
+## git branch -M main
+## git push origin main --force
 # obtain the session info
 sessionInfo()
 ```
