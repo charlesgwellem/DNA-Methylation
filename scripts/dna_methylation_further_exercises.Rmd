@@ -1,0 +1,43 @@
+---
+title: "dna_methylation_further_exercises"
+author: "Charles"
+date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: cosmo
+    highlight: monochrome
+    toc: yes
+    toc_float: no
+    toc_depth: 6
+    code_folding: hide
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+editor_options:
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+<style>
+body, h1, h2, h3, h4 {
+    font-family: "Bookman", serif;
+}
+
+body {
+    color: #333333;
+}
+a, a:hover {
+    color: red;
+}
+pre {
+    font-size: 10px;
+}
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```

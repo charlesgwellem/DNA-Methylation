@@ -486,7 +486,7 @@ We may also want to give weights to areas. For example get the height of a conti
 
 Another approach may be to apply smoothing, whereby single points will get smoothed away.
 
-```{r}
+```{r fig.align='center'}
 ## applying to the first point we saw earlier
 lfit <- loess(y1~x1, degree = 1,
               family = "symmetric",
@@ -497,9 +497,57 @@ plot(x1, y1,
      ylim = c(-1, 1))
 abline(h = c(-0.1, 0, 0.1), lty = 2)
 lines(x1, lfit$fitted, col = 2)
+
+## applying to the second point we recentlz saw
+lfit <- loess(y2~x2, degree = 1,
+              family = "symmetric",
+              span = 1/2)
+plot(x2, y2, 
+     xlab = "genomic location", 
+     ylab = "Methylation difference",
+     ylim = c(-1, 1))
+abline(h = c(-0.1, 0, 0.1), lty = 2)
+lines(x2, lfit$fitted, col = 2)
 ```
 
-It is realisable on the graph that the loess fit which is in red, makes in in a way that the value at the point of the only differentially affected CpG is 0. So that point is not considered.
+It is realisable on the graph that the loess fit which is in red, makes in in a way that the value at the point of the only differentially affected CpG is 0. So that point is not considered. But if the loess line goes up as well, then that region is of interest.
+
+#### Bumphunter
+
+It is an automated way and it takes in a matrix of points and a design matrix and it automatically looks for regions above some cut off point. The cut off points needs to be supplied.You also have to supply the chromosome, the position. The clusters will be automatically determined.
+
+```{r}
+res <- bumphunter(meth, X, chr = chr, pos = position,
+                  cluster = cl, cutoff = 0.1, B = 0)
+# B param can be set to 100 or 100 and can perform permutations
+# smooth argument can also be set to true.
+# this function can also attached uncertainty around regions in the form of p values.
+tab <- res$table
+
+knitr::kable(tab)
+```
+
+The results contain a chromosome, its start and end point, the average value of the difference methylation within that region, an area which ic the average difference value multiplied by the number of points in that particular region, the cluster where the region comes from, the ID and the index back in the original dataset and the number of points in the cluster.
+
+We can also make further visualisations
+
+```{r fig.align='center'}
+Index <- (tab[1, 7] - 3) : (tab[1, 8] + 3)
+matplot(position[Index],
+        meth[Index,, drop = TRUE],
+        col = cols, pch = 1, xlab = "genomic location",
+        ylim = c(0, 1))
+abline(h = c(-0.1, 0, 0.1), lty = 2)
+
+plot(position[Index], res$fitted[Index, 1],
+     xlab = "genomic location",
+     ylab = "Methylated difference",
+     ylim = c(-1, 1))
+abline(h = c(-0.1, 0, 0.1), lty = 2)
+```
+
+On the graph above we have the highest ranked region if we go by area.
+
 ## Session info
 
 ```{r}
