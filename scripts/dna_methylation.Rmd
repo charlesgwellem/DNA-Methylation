@@ -304,7 +304,7 @@ The data set comes from the illumina 450K array and it is from the TGCA, colon c
 ### Installing necessary tools
 
 ```{r results='hide'}
-devtools::install_github("genomicsclass/coloncancermeth")
+# devtools::install_github("genomicsclass/coloncancermeth")
 library(coloncancermeth)
 data(coloncancermeth)
 ```
@@ -395,7 +395,111 @@ matplot(position[Index],
 
 The matplot function will enable the visualisation of all the points in the original table. The graph shows that in the region where there are the most abundanty methylated CpGs, the nornam samples (in black) have lower methylation values compared to the those in red.
 
+#### Approach2: Identifying differentially methylated regions.
 
+In the approach below, we will explicitly look at regions rather than points as we did above.
+
+In regions, we will identify parts of regions that are differentially methylated.
+
+##### Identify areas of contiguous points
+
+We first have to look through for continuous points. We can't go across chromosomes for that. Within a chromosome we have large gaps which we will not want to look at within one analysis. So we will look at all points on chromosome 1 and plot the difference in position between each point and its neighbour.
+
+```{r fig.align='center'}
+chr1Index <- which(chr == "chr1")
+hist(log10(diff(position[chr1Index])),
+     main = "", xlab = "log 10 method")
+```
+
+The plot above shows that most points are 100 base pairs away but there are also neighbouring points that are millions of points apart, so there is a gap. These gaps may represent areas with no probes between them on that platform. Also in sequencing, only some parts of the genome is sequenced.
+
+So the first step is to break up each chromosome into regions that can be analysed together. We can accomplish this with the **bumphunter** package.
+
+##### Create groups of points within 500 base pairs away.
+
+```{r}
+# BiocManager::install("bumphunter")
+library(bumphunter)
+
+cl <- clusterMaker(chr, position, maxGap = 500)
+table(table(cl)) # shows the number of points per region.
+```
+
+Now let us consider two example regions
+
+```{r fig.align='center'}
+#### selecting regions with the smallest value
+Index <- which(cl==cl[which.min(fit$coefficients[, 2])])
+matplot(position[Index],
+        meth[Index, ],
+        col = cols,
+        pch = 1,
+        xlab = "genomic location",
+        ylab = "methylation")
+```
+
+The graph shows a situaition where only one point is different, between normal and cancer conditions. And that is the first point. I also plot the differences as below.
+
+```{r fig.align='center'}
+x1 <- position[Index]
+y1 <- fit$coefficients[Index, 2]
+plot(x1, y1, 
+     xlab = "genomic location",
+     ylab = "Methylation difference",
+     ylim = c(-1, 1),
+     abline(h = 0, lty = 2))
+     abline(h = c(-.1, .1), lty = 2)
+```
+
+Looking through the genome we can only identify a difference in one single CpG, which is visible in the lower segment of the graph above.
+
+In contrast notice the region below:
+
+```{r fig.align='center'}
+Index <- which(cl==72201) # we know this is a good region from previously analyses.
+
+matplot(position[Index],
+        meth[Index, ],
+        col = cols,
+        pch = 1,
+        xlab = "genomic location",
+        ylab = "methylation")
+```
+
+The graph shows that there appears to be big differences between the normal and the cancerous tissue, and the differences are a bit more variable.
+
+The differences an also be plot to more clearly identify the number of points that change.
+
+```{r fig.align='center'}
+x2 <- position[Index]
+y2 <- fit$coefficients[Index, 2]
+plot(x2, y2, xlab="genomic locations",
+     ylab = "Methylation difference", 
+     ylim = c(-1, 1))
+abline(h = 0, lty = 0)
+abline(h = c(-0.1, 0.1), lty = 2)
+```
+
+In contrast to the graph of differences which we saw when considering a single point, we see now here there are more differences and we may want to define a contiguous region. 
+
+We may also want to give weights to areas. For example get the height of a contiguous region and multiply with the number of CpGs in that region.
+
+Another approach may be to apply smoothing, whereby single points will get smoothed away.
+
+```{r}
+## applying to the first point we saw earlier
+lfit <- loess(y1~x1, degree = 1,
+              family = "symmetric",
+              span = 1/2)
+plot(x1, y1, 
+     xlab = "genomic location", 
+     ylab = "Methylation difference",
+     ylim = c(-1, 1))
+abline(h = c(-0.1, 0, 0.1), lty = 2)
+lines(x1, lfit$fitted, col = 2)
+```
+
+It is realisable on the graph that the loess fit which is in red, makes in in a way that the value at the point of the only differentially affected CpG is 0. So that point is not considered.
 ## Session info
 
 ```{r}
