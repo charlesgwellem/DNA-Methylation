@@ -1,0 +1,145 @@
+---
+title: "Further exploratory data analysis"
+author: "Charles"
+date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: cosmo
+    highlight: monochrome
+    toc: yes
+    toc_float: no
+    toc_depth: 6
+    code_folding: hide
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+editor_options:
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+<style>
+body, h1, h2, h3, h4 {
+    font-family: "Bookman", serif;
+}
+
+body {
+    color: #333333;
+}
+a, a:hover {
+    color: red;
+}
+pre {
+    font-size: 10px;
+}
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+In this script I perform further exploratory data analyses on DNA methylation data from TGCA
+
+## Load libraries
+
+```{r results='hide'}
+library(coloncancermeth)
+data(coloncancermeth)
+dim(meth)
+dim(pd)
+```
+
+
+## Exploratory data analysis
+
+### Use the methylation profiles to compute a Euclidean distance between each sample.
+
+```{r results='hide'}
+d <- dist(t(meth))
+```
+
+Now use **cmdscale** function.
+
+```{r fig.align='center'}
+mds <- cmdscale(d)
+colnames(mds) <- c("PC1", "PC2")
+
+mypar(1,1)
+plot(mds[, "PC1"],
+     mds[, "PC2"],
+     pch=21,bg=as.numeric(pd$Status),
+     xlab = "First dimension",
+     ylab = "Second dimension")
+legend("bottomright",levels(pd$Status),
+       col=seq(along=levels(pd$Status)),pch=15,cex=0.8)
+```
+
+The MDS plot shows separation between cancer and normal samples, but only in the first dimension. The second dimension seems to be associated with a large variability within the cancers. 
+
+### For each CpG compute p-values for the cancer versus normal comparison using the limma package.
+
+```{r}
+library(limma)
+X <- model.matrix(~pd$Status)
+fit <- lmFit(meth, X)
+eb <- eBayes(fit)
+pvals <- eb$p.value[, 2]
+q_values <- qvalue::qvalue(pvals)
+mean(q_values$qvalues < 0.05)
+```
+
+Only 23.73% of CpGs are differentially methylated in tumour vs healthy conditions based on their q values (corrected for multiple hypothesis testing).
+
+```{r}
+Index <- which(q_values$qvalues <= 0.05)
+sig_coefs <- eb$coefficients[Index, ]
+mean(sig_coefs[, 2] > 0)
+```
+
+41% of CpGs that are significantly differentially methylated are more methylated in the tumour compared to healthy samples.
+
+### Determine which of the differentially methylated CpGs are in CpG islands.
+
+```{r}
+library(AnnotationHub)
+ah <- AnnotationHub()
+cgi <- ah[["AH5086"]] # islands
+islands=gr[Index]%over%cgi
+hypermethylated=fit$coef[Index,2]>0
+prop.table( table(islands,hypermethylated) )
+```
+
+26.26% of differentially methylated CpGs are in CpG islands.
+
+### Now we will use the bumphunter package to separate the differentially methylated CpGs intro groups.
+
+```{r}
+library(bumphunter)
+X <- model.matrix(~pd$Status)
+chr <- as.character(seqnames(gr))
+res <- bumphunter(meth,
+                  X,
+                  chr = chr,
+                  pos = start(gr),
+                  cutoff = 0.1)
+head(res$table)
+
+# filtering by zone
+dmrs <- res$table[ res$table$L>=3, ]
+dmrs <- makeGRangesFromDataFrame(dmrs)
+dist_to_island <- distanceToNearest(dmrs, cgi)
+mean(dmrs %over%cgi)
+```
+
+61.05% of DMRs overlap a CpG island and `r mean(d>0 & d<=2000) * 100` % are within 2000 bp from a CpG island but do not overlap.
+
+```{r}
+sessioninfo()
+```
+
