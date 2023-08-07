@@ -228,6 +228,8 @@ Since we have the X and Y chromosomes to do it:
 ```{r fig.align='center'}
 colData(mset) <- getSex(mset)
 plotSex(mset)
+saveRDS(mset, "objects/mset.rds")
+# mset <- readRDS("objects/mset.rds")
 ```
 
 If we look at the graph quickly, we find out that based on the total methylation intensities on the X and Y chromosomes, the make samples are up in light blue while the females are down in red. WE predict that two samples are males and the other 4 are females.
@@ -238,6 +240,38 @@ It gives numbers that can be used to get the quality of the array. It can help u
 
 ```{r fig.align='center'}
 plot(as.matrix(getQC(mset)))
+```
+
+### Bumphunter
+
+Load Bumphunter library and perform some sanity checks
+
+```{r}
+library(bumphunter)
+class(mset)
+showMethods("bumphunter")
+```
+
+#### Convert mset to a GenomicRatioSet
+
+We need to convert mset to a GenomicRatioSet using the following command:
+
+```{r}
+grset <- ratioConvert(mset,what="beta",type="Illumina")
+help("bumphunter,GenomicRatioSet-method")
+```
+
+#### Get DMRs between predicted Males and Female samples
+
+```{r}
+library(tidyverse)
+
+DMRs <- bumphunter(grset, 
+                   model.matrix(~pData(grset)$predictedSex), 
+                   cutoff=0.1)
+
+head(DMRs) %>%
+  knitr::kable()
 ```
 
 ## Session info
