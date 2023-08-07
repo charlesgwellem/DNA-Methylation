@@ -44,7 +44,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ## Introduction
 
-In this script I perform further exploratory data analyses on DNA methylation data from TGCA
+In this script I perform further exploratory data analyses on DNA methylation data from TGCA.
 
 ## Load libraries
 
@@ -138,6 +138,98 @@ mean(dmrs %over%cgi)
 ```
 
 61.05% of DMRs overlap a CpG island and `r mean(d>0 & d<=2000) * 100` % are within 2000 bp from a CpG island but do not overlap.
+
+### Minfi package
+
+It can be used to read, preprocess, analyse data from 450K DNA methylation array. 
+
+```{r}
+library(minfi)
+# BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")
+# BiocManager::install("IlluminaHumanMethylation450kmanifest")
+```
+
+#### Reading IDAT files
+
+IDAT files are the raw level data for DNA methylation arrays. 
+
+```{r}
+list.files("rawdata/")
+```
+
+We can see that each file has two colours, red and green. It is important that every pair has the same basename. Changing file names may make package not to work. The target file includes basenames. So you don't have to construct it.
+
+```{r}
+targets <- read.csv("rawdata/targets.csv", as.is = TRUE)
+names(targets)
+dim(targets)
+targets$Basename
+```
+
+We have 12 raw files and 6 samples because we have green and red data for each sample.
+
+```{r}
+library(minfi)
+path <- "rawdata"
+targets$Basename <- file.path(path, targets$Basename)
+rgset <- read.metharray(targets$Basename, verbose = TRUE)
+pData(rgset) <- as(targets, "DataFrame")
+```
+
+To see the green and the red channels:
+
+```{r}
+dim(getRed(rgset))
+dim(getGreen(rgset))
+```
+
+The **minfi** package provides utilities to convert the raw data in to methylation measurements. The method below is recommended by Illumina so we use it.
+
+#### Converting raw data to methylation measurements.
+
+```{r}
+# use parallelisation next time
+library(doParallel)
+detectCores()
+registerDoParallel(cores = 8)
+mset <- preprocessIllumina(rgset)
+saveRDS(mset, "objects/mset.rds")
+mset <- readRDS("objects/mset.rds")
+```
+
+A mannifest file is required which connects probes to CpGs and needs to be installed. The mset object not contains the methylated and unmethylated signals and from there we can construct beta values by the illumina processing algorithm.
+
+#### Mapping CpGs to the genome
+
+This means we assign to each CpG a location in the genome.
+
+```{r}
+mset <- mapToGenome(mset)
+```
+
+#### Obtain methylation values at and CpG locations. 
+
+We can get the methylation estimates.
+
+```{r}
+dim(getBeta(mset, type="Illumina")) # for the default procedure, set type to Illumina
+head(granges(mset))
+```
+
+For every row of this beta matrix there is a corresponding location of the probe, and the corresponding CpG name.
+
+It is now possible to do bunp hunting or finding CpGs that are differentially methylated.
+
+#### Estimating sex of individuals sampled.
+
+Since we have the X and Y chromosomes to do it:
+
+```{r}
+colData(mset) <- getSex(mset)
+plotSex(mset)
+```
+
+## Session info
 
 ```{r}
 sessioninfo()
