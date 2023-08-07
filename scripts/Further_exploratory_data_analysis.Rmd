@@ -49,6 +49,7 @@ In this script I perform further exploratory data analyses on DNA methylation da
 ## Load libraries
 
 ```{r results='hide'}
+library(rafalib)
 library(coloncancermeth)
 data(coloncancermeth)
 dim(meth)
@@ -224,14 +225,24 @@ It is now possible to do bunp hunting or finding CpGs that are differentially me
 
 Since we have the X and Y chromosomes to do it:
 
-```{r}
+```{r fig.align='center'}
 colData(mset) <- getSex(mset)
 plotSex(mset)
+```
+
+If we look at the graph quickly, we find out that based on the total methylation intensities on the X and Y chromosomes, the make samples are up in light blue while the females are down in red. WE predict that two samples are males and the other 4 are females.
+
+#### QC
+
+It gives numbers that can be used to get the quality of the array. It can help us detect outlier points and flag them out.
+
+```{r fig.align='center'}
+plot(as.matrix(getQC(mset)))
 ```
 
 ## Session info
 
 ```{r}
-sessioninfo()
+sessionInfo()
 ```
 
