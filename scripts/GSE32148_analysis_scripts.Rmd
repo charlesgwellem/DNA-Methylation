@@ -132,4 +132,65 @@ knitr::kable(prop.table(table(cut(d,
              row.names = "Distance from CpGi")
 ```
 
-The table above shows that there are more regions that do not intersect with the islands at all. They are within 2000 bp from the island. This means that there are more regions that are in this area, but not on the islands, but they are next to the islands. We also have shelves. And the CpGs that are nowhere near an island are calles open sea CpGs.
+The table above shows that there are more regions that do not intersect with the islands at all. They are within 2000 bp from the island. This means that there are more regions that are in this area, but not on the islands, but they are next to the islands. We also have shelves. And the CpGs that are nowhere near an island are called open sea CpGs.
+
+```{r}
+nulltab <- granges(dat)
+nullmap <- distanceToNearest(nulltab, cgi)
+nulld <- mcols(nullmap)$distance
+prop.table(table(cut(nulld, c(0, 1, 
+                              2000, 5000, Inf),
+                     include.lowest = TRUE,
+                     right = TRUE)))
+prop.table(table(getIslandStatus(dat)))
+```
+
+We see that 41% of the regions without methylation are on the islands. So we can conclude that the DMRs appear to be more common in the shores than in the islands.
+
+```{r}
+tab <- tab[order(-mcols(tab)$area)] # order regions by size
+# can also do by significance
+tab <- tab + 3000 # add 3k to each side 
+
+i <- 17
+
+dataIndex <- which(granges(dat) %over%tab[i])
+cgiIndex <- which(cgi %over%tab[i])
+thecgi <- cgi[cgiIndex]
+
+# get positions of cpgs in region
+pos <- start(dat)[dataIndex]
+xlim <- range(c(pos, 
+                start(thecgi),
+                end(thecgi)))
+beta <- getBeta(dat)
+y <- beta[dataIndex]
+cols <- as.factor(pData(dat)$Tissue)
+library(rafalib)
+mypar(1, 1)
+matplot(pos,
+        y, col = as.numeric(cols),
+        xlim = xlim,
+        ylim = c(0, 1),
+        ylab = "Methylation")
+
+apply(cbind(start(thecgi),
+            end(thecgi)), 1,
+      function(x)segments(x[1],
+                          0,
+                          x[2],
+                          0, lwd = 1))
+
+plot(pos,
+     res$fitted[dataIndex],
+     xlim = xlim,
+     ylim = c(0, 1))
+abline(h = 0)
+```
+
+### Cell composition
+
+Most datasets come from bulk tissue, which is often a combination of cell types. 
+
+```{r}
+```
