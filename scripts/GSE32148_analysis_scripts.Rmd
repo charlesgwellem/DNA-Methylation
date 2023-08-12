@@ -1,0 +1,135 @@
+---
+title: "GSE32148"
+author: "Charles"
+date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: cosmo
+    highlight: monochrome
+    toc: yes
+    toc_float: no
+    toc_depth: 6
+    code_folding: hide
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+editor_options:
+  chunk_output_type: console
+---
+
+```{css, echo=FALSE}
+<style>
+body, h1, h2, h3, h4 {
+    font-family: "Bookman", serif;
+}
+
+body {
+    color: #333333;
+}
+a, a:hover {
+    color: red;
+}
+pre {
+    font-size: 10px;
+}
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+In this script I perform further exploratory data analyses on DNA methylation data from the published dataset GSE32148.
+
+### Load libraries
+
+```{r}
+library(minfi) ##Bioc
+library(IlluminaHumanMethylation450kmanifest) ##Bioc
+library(doParallel) ##CRAN
+library(pkgmaker)
+library(rafalib)
+library(GenomicRanges)
+detectCores()
+registerDoParallel(cores = 8)
+```
+
+### Load the metadata
+
+```{r}
+path="rawdata/GSE32148"    # use your own path to downloaded data
+targets=read.delim(file.path (path,"targets.txt"),as.is=TRUE)
+table(targets$Tissue,targets$Status)
+```
+
+For illustration we will read in the normal colon and lung
+
+```{r}
+index = which( targets$Status=="normal" & targets$Tissue%in%c("colon","lung") )
+targets = targets[index,]
+```
+
+### Read in data, perform preprocessing, map and ratioConvert
+
+```{r}
+dat = read.metharray.exp(base=path,targets = targets, verbose=TRUE)
+dat = preprocessIllumina(dat)
+dat = mapToGenome(dat)
+dat = ratioConvert(dat,type="Illumina")
+```
+
+```{r}
+tissue <- pData(dat)$Tissue
+X <- model.matrix(~tissue)
+```
+
+### Perform inference
+
+Here we will shuffle colons and lugs over and over again and we're going to re-run the search for regions on the shuffled data.
+So for each one we will have a series of candidate bumps. We can use the area, the length and height of the regions, to summarise them. And then, once we run this over and over again, the permutation versions of this, we are going to create a null set of values that we compare to the values that we get when we run the original data.
+
+Parallelisation will be helpful since we will be repeating things.
+
+### Subset Chr. 22 for speed
+
+I subset Chr. 22
+
+```{r}
+index <- which(seqnames(dat) == "chr22")
+dat <- dat[index, ]
+res <- bumphunter(dat, X, cutoff = 0.1, B = 1000)
+# lets see the first hunter
+res$table[1, ]
+```
+
+The table above is subsetted to show the first the first bump. It has a length of 11 CpGs, an average height of -0.31 so the area is 3.43 (from $11 x 0.31$). The fwerArea value of 0 shows us that for the 1000 permutations it ran, it found that  0% of the 1000 permutations found a candidate bump with an area of that size or bigger. Fwer shows how often it finds a region that has both the value and the length as big as that one. The Fwer looks at the value and the length at the same time. The term **value** on the table is the average height of the bump.
+
+### CpG island shores
+
+To study relationship between differentially methylated regions and CpG islands.
+
+```{r}
+cgi <- AnnotationHub::AnnotationHub()[["AH5086"]] # ID for CpG islands
+
+tab <- res$table[res$table$fwer <= 0.05, ]
+tab <- makeGRangesFromDataFrame(tab,
+                                keep.extra.columns = TRUE)
+
+# to study relationship between each DMR and islands
+map <- distanceToNearest(tab, cgi)
+d <- mcols(map)$distance
+# to look at the table of distances
+knitr::kable(prop.table(table(cut(d,
+                     c(0, 1, 2000, 5000, Inf),
+                     include.lowest = TRUE,
+                     right = FALSE))),
+             col.names = "Proportion of DMR in region",
+             row.names = "Distance from CpGi")
+```
+
+The table above shows that there are more regions that do not intersect with the islands at all. They are within 2000 bp from the island. This means that there are more regions that are in this area, but not on the islands, but they are next to the islands. We also have shelves. And the CpGs that are nowhere near an island are calles open sea CpGs.

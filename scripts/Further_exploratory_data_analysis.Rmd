@@ -261,19 +261,6 @@ grset <- ratioConvert(mset,what="beta",type="Illumina")
 help("bumphunter,GenomicRatioSet-method")
 ```
 
-#### Get DMRs between predicted Males and Female samples
-
-```{r}
-library(tidyverse)
-
-DMRs <- bumphunter(grset, 
-                   model.matrix(~pData(grset)$predictedSex), 
-                   cutoff=0.1)
-
-head(DMRs) %>%
-  knitr::kable()
-```
-
 ## Session info
 
 ```{r}
