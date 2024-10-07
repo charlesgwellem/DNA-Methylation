@@ -49,23 +49,6 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install(c("BSgenome.Hsapiens.UCSC.hg19", "AnnotationHub", "coloncancermeth", "limma", "rafalib", "bumphunter"))
 ```
-
-## **Usage**
-
-To run the analysis:
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/dna_methylation_analysis.git
-   cd dna_methylation_analysis
-   ```
-
-2. **Run the RMarkdown script**:  
-   Open the `dna_methylation.Rmd` file in RStudio and knit the document to generate the HTML or PDF report.
-
-3. **Explore results**:  
-   The results of the CpG island analysis, differential methylation testing, and region analysis will be displayed in the output.
-
 ## **Key Results**
 
 ### **Exploratory Data Analysis of CpGs:**
